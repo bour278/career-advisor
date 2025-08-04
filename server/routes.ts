@@ -32,12 +32,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SWOT Analysis API
-  app.post("/api/swot-analysis/:questionId", async (req, res) => {
+  app.post("/api/swot-analysis/:questionId?", async (req, res) => {
     try {
       const { questionId } = req.params;
-      const analysis = await vazirAgent.startSwotAnalysis(questionId);
+      const customData = req.body; // Get custom question data from request body
+      
+      console.log(`\x1b[36m🚀 Starting SWOT analysis${questionId ? ` for question: ${questionId}` : ' with custom question'}\x1b[0m`);
+      if (customData?.question) {
+        console.log(`\x1b[35m📝 Custom question: ${customData.question}\x1b[0m`);
+      }
+      
+      const analysis = await vazirAgent.startSwotAnalysis(questionId, customData);
+      console.log(`\x1b[32m✅ SWOT analysis completed successfully\x1b[0m`);
+      
       res.json(analysis);
     } catch (error) {
+      console.log(`\x1b[31m❌ SWOT analysis failed:\x1b[0m`);
+      console.log(`\x1b[31m   Error: ${error.message}\x1b[0m`);
+      console.log(`\x1b[33m   Stack: ${error.stack}\x1b[0m`);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Add route for starting analysis without question ID
+  app.post("/api/swot-analysis", async (req, res) => {
+    try {
+      const customData = req.body; // Get custom question data from request body
+      
+      console.log(`\x1b[36m🚀 Starting SWOT analysis with custom question\x1b[0m`);
+      if (customData?.question) {
+        console.log(`\x1b[35m📝 Custom question: ${customData.question}\x1b[0m`);
+      }
+      
+      const analysis = await vazirAgent.startSwotAnalysis(undefined, customData);
+      console.log(`\x1b[32m✅ SWOT analysis completed successfully\x1b[0m`);
+      
+      res.json(analysis);
+    } catch (error) {
+      console.log(`\x1b[31m❌ SWOT analysis failed:\x1b[0m`);
+      console.log(`\x1b[31m   Error: ${error.message}\x1b[0m`);
+      console.log(`\x1b[33m   Stack: ${error.stack}\x1b[0m`);
       res.status(400).json({ error: error.message });
     }
   });

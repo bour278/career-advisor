@@ -1,84 +1,57 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { CheckCircle, RotateCcw, Users, Download, Share, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { SwotBoard } from './swot-board';
-import { useQuestionSubscription } from '@/hooks/use-websocket';
 import { apiRequest } from '@/lib/queryClient';
-import type { SwotAnalysis, AgentConversation } from '@shared/schema';
+import type { SwotAnalysis } from '@shared/schema';
 
-interface VazirAgentProps {
-  questionId: string | null;
-}
-
-export function VazirAgent({ questionId }: VazirAgentProps) {
+export function VazirAgent() {
   const [question, setQuestion] = useState('');
   const [currentRole, setCurrentRole] = useState('');
   const [targetRole, setTargetRole] = useState('');
-  const queryClient = useQueryClient();
-  
-  const { subscribe } = useQuestionSubscription(questionId);
+  const [swotAnalysis, setSwotAnalysis] = useState<SwotAnalysis | null>(null);
 
-  // Query SWOT analysis
-  const { data: swotAnalysis, isLoading: swotLoading } = useQuery<SwotAnalysis>({
-    queryKey: ['/api/swot-analysis', questionId],
-    enabled: !!questionId,
-  });
-
-  // Query conversation status
-  const { data: conversation } = useQuery<AgentConversation>({
-    queryKey: ['/api/conversations', questionId, 'vazir'],
-    enabled: !!questionId,
-  });
-
-  // Start SWOT analysis mutation
   const startAnalysisMutation = useMutation({
     mutationFn: async () => {
-      if (!questionId) throw new Error('No question ID');
-      return apiRequest('POST', `/api/swot-analysis/${questionId}`, {});
+      const requestData = {
+        question: question.trim() || "General career guidance and SWOT analysis",
+        currentRole: currentRole.trim() || "Professional", 
+        targetRole: targetRole.trim() || "Advanced Professional"
+      };
+      
+      return apiRequest('POST', '/api/swot-analysis', requestData);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/swot-analysis', questionId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/conversations', questionId, 'vazir'] });
+    onSuccess: (data: any) => {
+      console.log('API Response:', data);
+      // Handle different possible response structures
+      if (data.analysis) {
+        setSwotAnalysis(data.analysis);
+      } else if (data.strengths || data.weaknesses || data.opportunities || data.threats) {
+        setSwotAnalysis(data);
+      } else {
+        console.error('Unexpected response structure:', data);
+      }
     },
   });
 
-  // Subscribe to real-time updates
-  useEffect(() => {
-    if (!questionId) return;
-
-    const unsubscribe = subscribe('analysis_started', (message) => {
-      if (message.agent === 'vazir') {
-        queryClient.invalidateQueries({ queryKey: ['/api/swot-analysis', questionId] });
-      }
-    });
-
-    const unsubscribeProgress = subscribe('conversation_progress', (message) => {
-      if (message.agent === 'vazir') {
-        queryClient.invalidateQueries({ queryKey: ['/api/conversations', questionId, 'vazir'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/swot-analysis', questionId] });
-      }
-    });
-
-    return () => {
-      unsubscribe();
-      unsubscribeProgress();
-    };
-  }, [questionId, subscribe, queryClient]);
-
   const conversationSteps = [
-    { name: 'LLM-1: Strengths Analysis', status: 'completed', distance: 0.23 },
-    { name: 'LLM-2: Weaknesses Assessment', status: 'completed', distance: 0.31 },
-    { name: 'LLM-3: Opportunities Research', status: 'active', distance: null },
-    { name: 'LLM-4: Threats Analysis', status: 'pending', distance: null },
+    { name: 'LLM-1: Strengths Analysis' },
+    { name: 'LLM-2: Weaknesses Assessment' },
+    { name: 'LLM-3: Opportunities Research' },
+    { name: 'LLM-4: Threats Analysis' },
   ];
 
   const getStepStatus = (index: number) => {
-    const messages = conversation?.messages || [];
-    if (index < messages.length - 1) return 'completed';
-    if (index === messages.length - 1) return 'active';
+    if (startAnalysisMutation.isPending) {
+      if (index === 0) return 'active';
+      return 'pending';
+    }
+    if (swotAnalysis) {
+      return 'completed';
+    }
     return 'pending';
   };
 
@@ -91,7 +64,7 @@ export function VazirAgent({ questionId }: VazirAgentProps) {
         </div>
         <Button 
           onClick={() => startAnalysisMutation.mutate()}
-          disabled={!questionId || startAnalysisMutation.isPending}
+          disabled={startAnalysisMutation.isPending}
           className="bg-primary text-white hover:bg-blue-700"
         >
           <Users className="h-4 w-4 mr-2" />
@@ -100,7 +73,6 @@ export function VazirAgent({ questionId }: VazirAgentProps) {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Input Panel */}
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardContent className="p-6">
@@ -142,7 +114,7 @@ export function VazirAgent({ questionId }: VazirAgentProps) {
 
                 <Button 
                   onClick={() => startAnalysisMutation.mutate()}
-                  disabled={!questionId || startAnalysisMutation.isPending}
+                  disabled={startAnalysisMutation.isPending}
                   className="w-full bg-primary text-white hover:bg-blue-700"
                 >
                   <Users className="h-4 w-4 mr-2" />
@@ -152,7 +124,6 @@ export function VazirAgent({ questionId }: VazirAgentProps) {
             </CardContent>
           </Card>
 
-          {/* Conversation Progress */}
           <Card>
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Agent Conversation</h3>
@@ -180,10 +151,7 @@ export function VazirAgent({ questionId }: VazirAgentProps) {
                           {step.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {status === 'completed' && step.distance ? 
-                            `Semantic distance: ${step.distance}` :
-                            status === 'active' ? 'Processing...' : 'Pending'
-                          }
+                          {status === 'active' ? 'Processing...' : status === 'completed' ? 'Done' : 'Pending'}
                         </p>
                       </div>
                     </div>
@@ -191,21 +159,22 @@ export function VazirAgent({ questionId }: VazirAgentProps) {
                 })}
               </div>
               
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-primary flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Conversation complete
-                </p>
-              </div>
+              {swotAnalysis && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-primary flex items-center">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Analysis complete
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* SWOT Analysis Board */}
         <div className="lg:col-span-2">
           <SwotBoard 
-            analysis={swotAnalysis || null} 
-            isUpdating={startAnalysisMutation.isPending || swotLoading}
+            analysis={swotAnalysis} 
+            isUpdating={startAnalysisMutation.isPending}
           />
           
           {swotAnalysis && (

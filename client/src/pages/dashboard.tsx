@@ -62,7 +62,7 @@ export default function Dashboard() {
       case 'overview':
         return <Overview onTabChange={setActiveTab} onQuestionSubmit={handleQuestionSubmit} />;
       case 'vazir':
-        return <VazirAgent questionId={currentQuestionId} />;
+        return <VazirAgent />;
       case 'gawi':
         return <GawiAgent questionId={currentQuestionId} />;
       case 'zaki':

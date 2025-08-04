@@ -1,8 +1,18 @@
 import OpenAI from 'openai';
+import { config } from "dotenv";
+
+// Ensure environment variables are loaded
+config({ path: "keys.env" });
 
 const DEFAULT_MODEL_STR = "gpt-4";
 
 const apiKey = process.env.OPENAI_API_KEY || "default_key";
+
+// Debug logging for API key
+console.log('🔍 Environment check:');
+console.log('  NODE_ENV:', process.env.NODE_ENV);
+console.log('  OPENAI_API_KEY present:', !!process.env.OPENAI_API_KEY);
+console.log('  Keys from env:', Object.keys(process.env).filter(k => k.includes('OPENAI')));
 
 // Log API key status with colors
 if (apiKey === "default_key") {

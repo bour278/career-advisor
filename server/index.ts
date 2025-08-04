@@ -3,7 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
-// Load environment variables from keys.env
+// Load environment variables from keys.env first
 config({ path: "keys.env" });
 
 const app = express();

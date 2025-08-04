@@ -11,7 +11,7 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<Response> {
+): Promise<any> { // Changed to Promise<any> to allow returning JSON
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -20,6 +20,14 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
+  
+  // Handle cases where the response might not have a body
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return res.json();
+  }
+
+  // Return the raw response if it's not JSON
   return res;
 }
 
