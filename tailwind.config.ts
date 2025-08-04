@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
+        sans: ["Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
       },
       borderRadius: {
         lg: "0.5rem",
@@ -25,7 +25,7 @@ export default {
           foreground: "hsl(222.2 84.2% 4.9%)",
         },
         primary: {
-          DEFAULT: "hsl(221.2 83.2% 53.3%)",
+          DEFAULT: "hsl(220 100% 50%)",
           foreground: "hsl(210 40% 98%)",
         },
         secondary: {
@@ -46,7 +46,7 @@ export default {
         },
         border: "hsl(214.3 31.8% 91.4%)",
         input: "hsl(214.3 31.8% 91.4%)",
-        ring: "hsl(221.2 83.2% 53.3%)",
+        ring: "hsl(220 100% 50%)",
         chart: {
           "1": "var(--chart-1)",
           "2": "var(--chart-2)",
